@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pangobit/go-wrangler/internal/generator"
 	"github.com/pangobit/go-wrangler/internal/parse"
 )
 
@@ -21,15 +22,16 @@ type User struct {
 `
 
 	// Parse the struct
-	tags, err := parse.ParseStruct(source)
+	structInfo, err := parse.ParseStruct(source)
 	if err != nil {
 		log.Fatalf("Failed to parse struct: %v", err)
 	}
 
 	// Print the parsed tag information
+	fmt.Printf("Struct Name: %s\n", structInfo.Name)
 	fmt.Println("Parsed struct tags:")
-	for _, tag := range tags {
-		fmt.Printf("Field: %s\n", tag.FieldName)
+	for _, tag := range structInfo.Tags {
+		fmt.Printf("Field: %s (%s)\n", tag.FieldName, tag.FieldType)
 		if tag.Bind != nil {
 			fmt.Printf("  Bind: %s (required: %v)\n", tag.Bind.Type, tag.Bind.Required)
 		}
@@ -43,4 +45,9 @@ type User struct {
 		}
 		fmt.Println()
 	}
+
+	// Generate the bind function
+	bindCode := generator.GenerateBindFunction(structInfo)
+	fmt.Println("Generated bind function:")
+	fmt.Println(bindCode)
 }

@@ -1,0 +1,90 @@
+package generator
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/pangobit/go-wrangler/internal/parse"
+)
+
+// GenerateBindFunction generates Go code for a bind function that takes an http.Request and path params,
+// binds them to the struct fields according to the tags, and validates.
+func GenerateBindFunction(structInfo parse.StructInfo) string {
+	var sb strings.Builder
+
+	// Check if strconv is needed
+	needsStrconv := false
+	for _, tag := range structInfo.Tags {
+		if tag.Bind != nil && tag.FieldType == "int" {
+			needsStrconv = true
+		}
+		if tag.Validate != nil && tag.FieldType != "int" {
+			needsStrconv = true
+		}
+	}
+
+	// Imports
+	sb.WriteString("import (\n")
+	sb.WriteString("\t\"fmt\"\n")
+	sb.WriteString("\t\"net/http\"\n")
+	if needsStrconv {
+		sb.WriteString("\t\"strconv\"\n")
+	}
+	sb.WriteString(")\n\n")
+
+	// Function signature
+	sb.WriteString(fmt.Sprintf("func Bind%s(r *http.Request, pathParams map[string]string, s *%s) error {\n", structInfo.Name, structInfo.Name))
+
+	// Bind logic
+	for _, tag := range structInfo.Tags {
+		if tag.Bind != nil {
+			var valueExpr string
+			switch tag.Bind.Type {
+			case "query":
+				valueExpr = fmt.Sprintf("r.URL.Query().Get(\"%s\")", tag.FieldName)
+			case "header":
+				valueExpr = fmt.Sprintf("r.Header.Get(\"%s\")", tag.FieldName)
+			case "path":
+				valueExpr = fmt.Sprintf("pathParams[\"%s\"]", tag.FieldName)
+			}
+			if tag.FieldType == "int" {
+				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, tag.FieldName, tag.FieldName))
+			} else {
+				sb.WriteString(fmt.Sprintf("\ts.%s = %s\n", tag.FieldName, valueExpr))
+			}
+			if tag.Bind.Required {
+				if tag.FieldType == "int" {
+					sb.WriteString(fmt.Sprintf("\tif s.%s == 0 {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, tag.FieldName))
+				} else {
+					sb.WriteString(fmt.Sprintf("\tif s.%s == \"\" {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, tag.FieldName))
+				}
+			}
+		}
+	}
+
+	// Validation logic
+	for _, tag := range structInfo.Tags {
+		if tag.Validate != nil {
+			if tag.FieldType == "int" {
+				if tag.Validate.Min != nil {
+					sb.WriteString(fmt.Sprintf("\tif s.%s < %d {\n\t\treturn fmt.Errorf(\"%s must be at least %d\")\n\t}\n", tag.FieldName, *tag.Validate.Min, tag.FieldName, *tag.Validate.Min))
+				}
+				if tag.Validate.Max != nil {
+					sb.WriteString(fmt.Sprintf("\tif s.%s > %d {\n\t\treturn fmt.Errorf(\"%s must be at most %d\")\n\t}\n", tag.FieldName, *tag.Validate.Max, tag.FieldName, *tag.Validate.Max))
+				}
+			} else {
+				// For non-int, parse and check
+				if tag.Validate.Min != nil {
+					sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(s.%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else if val < %d {\n\t\treturn fmt.Errorf(\"%s must be at least %d\")\n\t}\n", tag.FieldName, tag.FieldName, *tag.Validate.Min, tag.FieldName, *tag.Validate.Min))
+				}
+				if tag.Validate.Max != nil {
+					sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(s.%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else if val > %d {\n\t\treturn fmt.Errorf(\"%s must be at most %d\")\n\t}\n", tag.FieldName, tag.FieldName, *tag.Validate.Max, tag.FieldName, *tag.Validate.Max))
+				}
+			}
+		}
+	}
+
+	sb.WriteString("\treturn nil\n}\n")
+
+	return sb.String()
+}

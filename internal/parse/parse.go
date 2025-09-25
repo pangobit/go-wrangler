@@ -13,8 +13,15 @@ import (
 // TagInfo represents the extracted tag information
 type TagInfo struct {
 	FieldName string
+	FieldType string
 	Bind      *BindTag
 	Validate  *ValidateTag
+}
+
+// StructInfo represents the parsed struct information
+type StructInfo struct {
+	Name string
+	Tags []TagInfo
 }
 
 // BindTag represents bind tag information
@@ -38,13 +45,14 @@ type ValidateTag struct {
 }
 
 // ParseStruct parses a Go struct source code and extracts tag information
-func ParseStruct(source string) ([]TagInfo, error) {
+func ParseStruct(source string) (StructInfo, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", source, parser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse source: %w", err)
+		return StructInfo{}, fmt.Errorf("failed to parse source: %w", err)
 	}
 
+	var structInfo StructInfo
 	var tags []TagInfo
 
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -56,6 +64,7 @@ func ParseStruct(source string) ([]TagInfo, error) {
 		if !ok {
 			return true
 		}
+		structInfo.Name = typeSpec.Name.Name
 		for _, field := range structType.Fields.List {
 			if tagInfo, ok := processField(field); ok {
 				tags = append(tags, tagInfo)
@@ -64,7 +73,8 @@ func ParseStruct(source string) ([]TagInfo, error) {
 		return true
 	})
 
-	return tags, nil
+	structInfo.Tags = tags
+	return structInfo, nil
 }
 
 // processField processes a single struct field and extracts tag information
@@ -77,6 +87,11 @@ func processField(field *ast.Field) (TagInfo, bool) {
 
 	if len(field.Names) > 0 {
 		tagInfo.FieldName = field.Names[0].Name
+	}
+
+	// Set field type
+	if ident, ok := field.Type.(*ast.Ident); ok {
+		tagInfo.FieldType = ident.Name
 	}
 
 	if bindStr := extractTagValue(tag, "bind"); bindStr != "" {

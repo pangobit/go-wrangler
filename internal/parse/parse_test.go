@@ -11,7 +11,7 @@ func TestParseStruct(t *testing.T) {
 	tests := []struct {
 		name     string
 		source   string
-		expected []TagInfo
+		expected StructInfo
 	}{
 		{
 			name: "single field with bind tag",
@@ -20,12 +20,16 @@ func TestParseStruct(t *testing.T) {
 type User struct {
 	Name string ` + "`" + `bind:"header,required"` + "`" + `
 }`,
-			expected: []TagInfo{
-				{
-					FieldName: "Name",
-					Bind: &BindTag{
-						Type:     "header",
-						Required: true,
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "Name",
+						FieldType: "string",
+						Bind: &BindTag{
+							Type:     "header",
+							Required: true,
+						},
 					},
 				},
 			},
@@ -38,19 +42,24 @@ type User struct {
 	Name  string ` + "`" + `bind:"header,required"` + "`" + `
 	Email string ` + "`" + `bind:"query"` + "`" + `
 	}`,
-			expected: []TagInfo{
-				{
-					FieldName: "Name",
-					Bind: &BindTag{
-						Type:     "header",
-						Required: true,
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "Name",
+						FieldType: "string",
+						Bind: &BindTag{
+							Type:     "header",
+							Required: true,
+						},
 					},
-				},
-				{
-					FieldName: "Email",
-					Bind: &BindTag{
-						Type:     "query",
-						Required: false,
+					{
+						FieldName: "Email",
+						FieldType: "string",
+						Bind: &BindTag{
+							Type:     "query",
+							Required: false,
+						},
 					},
 				},
 			},
@@ -62,12 +71,16 @@ type User struct {
 type User struct {
 	ID string ` + "`" + `bind:"path,required"` + "`" + `
 }`,
-			expected: []TagInfo{
-				{
-					FieldName: "ID",
-					Bind: &BindTag{
-						Type:     "path",
-						Required: true,
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "ID",
+						FieldType: "string",
+						Bind: &BindTag{
+							Type:     "path",
+							Required: true,
+						},
 					},
 				},
 			},
@@ -79,7 +92,10 @@ type User struct {
 type User struct {
 	Name string
 }`,
-			expected: []TagInfo{},
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{},
+			},
 		},
 		{
 			name: "only validate tag",
@@ -88,10 +104,14 @@ type User struct {
 type User struct {
 	Name string ` + "`" + `validate:"min=10"` + "`" + `
 }`,
-			expected: []TagInfo{
-				{
-					FieldName: "Name",
-					Validate:  &ValidateTag{Min: &[]int{10}[0]},
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "Name",
+						FieldType: "string",
+						Validate:  &ValidateTag{Min: &[]int{10}[0]},
+					},
 				},
 			},
 		},
@@ -102,16 +122,20 @@ type User struct {
 type User struct {
 	ID int ` + "`" + `bind:"path,required" validate:"min=1,max=100"` + "`" + `
 }`,
-			expected: []TagInfo{
-				{
-					FieldName: "ID",
-					Bind: &BindTag{
-						Type:     "path",
-						Required: true,
-					},
-					Validate: &ValidateTag{
-						Min: &[]int{1}[0],
-						Max: &[]int{100}[0],
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "ID",
+						FieldType: "int",
+						Bind: &BindTag{
+							Type:     "path",
+							Required: true,
+						},
+						Validate: &ValidateTag{
+							Min: &[]int{1}[0],
+							Max: &[]int{100}[0],
+						},
 					},
 				},
 			},
@@ -125,13 +149,17 @@ type User struct {
 				t.Fatalf("ParseStruct() error = %v", err)
 			}
 
-			if len(result) != len(tt.expected) {
-				t.Errorf("ParseStruct() got %d results, want %d", len(result), len(tt.expected))
+			if result.Name != tt.expected.Name {
+				t.Errorf("ParseStruct() name = %v, want %v", result.Name, tt.expected.Name)
+			}
+
+			if len(result.Tags) != len(tt.expected.Tags) {
+				t.Errorf("ParseStruct() got %d results, want %d", len(result.Tags), len(tt.expected.Tags))
 				return
 			}
 
-			for i, expected := range tt.expected {
-				actual := result[i]
+			for i, expected := range tt.expected.Tags {
+				actual := result.Tags[i]
 
 				if actual.FieldName != expected.FieldName {
 					t.Errorf("FieldName[%d] = %v, want %v", i, actual.FieldName, expected.FieldName)
@@ -322,6 +350,7 @@ func TestProcessField(t *testing.T) {
 			field: createField("Name", `bind:"header,required"`),
 			expected: TagInfo{
 				FieldName: "Name",
+				FieldType: "string",
 				Bind: &BindTag{
 					Type:     "header",
 					Required: true,
@@ -334,6 +363,7 @@ func TestProcessField(t *testing.T) {
 			field: createField("Age", `validate:"min=18"`),
 			expected: TagInfo{
 				FieldName: "Age",
+				FieldType: "int",
 				Validate:  &ValidateTag{Min: &[]int{18}[0]},
 			},
 			hasTag: true,
@@ -343,6 +373,7 @@ func TestProcessField(t *testing.T) {
 			field: createField("ID", `bind:"path,required" validate:"max=100"`),
 			expected: TagInfo{
 				FieldName: "ID",
+				FieldType: "int",
 				Bind: &BindTag{
 					Type:     "path",
 					Required: true,
