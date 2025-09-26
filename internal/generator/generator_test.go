@@ -37,7 +37,7 @@ func TestGenerateBindFunction(t *testing.T) {
 		},
 	}
 
-	result := GenerateBindFunction(structInfo)
+	result := GenerateBindFunction(structInfo) + GenerateValidateFunction(structInfo)
 
 	expected := `import (
 	"fmt"
@@ -50,6 +50,13 @@ func BindUser(r *http.Request, pathParams map[string]string, s *User) error {
 		return fmt.Errorf("Name is required")
 	}
 	s.Email = r.URL.Query().Get("Email")
+	return nil
+}
+import (
+	"fmt"
+)
+
+func ValidateUser(s *User) error {
 	if s.Age < 18 {
 		return fmt.Errorf("Age must be at least 18")
 	}

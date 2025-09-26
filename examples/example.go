@@ -46,8 +46,15 @@ type User struct {
 		fmt.Println()
 	}
 
-	// Generate the bind function
+	// Generate the bind and validate functions
 	bindCode := generator.GenerateBindFunction(structInfo)
+	validateCode := generator.GenerateValidateFunction(structInfo)
+
+	// Print the generated bind function
 	fmt.Println("Generated bind function:")
 	fmt.Println(bindCode)
+
+	// Print the generated validate function
+	fmt.Println("Generated validate function:")
+	fmt.Println(validateCode)
 }

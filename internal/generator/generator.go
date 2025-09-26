@@ -8,7 +8,7 @@ import (
 )
 
 // GenerateBindFunction generates Go code for a bind function that takes an http.Request and path params,
-// binds them to the struct fields according to the tags, and validates.
+// binds them to the struct fields according to the bind tags.
 func GenerateBindFunction(structInfo parse.StructInfo) string {
 	var sb strings.Builder
 
@@ -16,9 +16,6 @@ func GenerateBindFunction(structInfo parse.StructInfo) string {
 	needsStrconv := false
 	for _, tag := range structInfo.Tags {
 		if tag.Bind != nil && tag.FieldType == "int" {
-			needsStrconv = true
-		}
-		if tag.Validate != nil && tag.FieldType != "int" {
 			needsStrconv = true
 		}
 	}
@@ -61,6 +58,34 @@ func GenerateBindFunction(structInfo parse.StructInfo) string {
 			}
 		}
 	}
+
+	sb.WriteString("\treturn nil\n}\n")
+
+	return sb.String()
+}
+
+// GenerateValidateFunction generates Go code for a validate function that validates the struct fields according to the validate tags.
+func GenerateValidateFunction(structInfo parse.StructInfo) string {
+	var sb strings.Builder
+
+	// Check if strconv is needed
+	needsStrconv := false
+	for _, tag := range structInfo.Tags {
+		if tag.Validate != nil && tag.FieldType != "int" {
+			needsStrconv = true
+		}
+	}
+
+	// Imports
+	sb.WriteString("import (\n")
+	sb.WriteString("\t\"fmt\"\n")
+	if needsStrconv {
+		sb.WriteString("\t\"strconv\"\n")
+	}
+	sb.WriteString(")\n\n")
+
+	// Function signature
+	sb.WriteString(fmt.Sprintf("func Validate%s(s *%s) error {\n", structInfo.Name, structInfo.Name))
 
 	// Validation logic
 	for _, tag := range structInfo.Tags {

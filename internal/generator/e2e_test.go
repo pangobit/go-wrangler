@@ -48,8 +48,8 @@ type User struct {
 				t.Fatalf("ParseStruct failed: %v", err)
 			}
 
-			// Generate the bind function
-			code := GenerateBindFunction(structInfo)
+			// Generate the bind and validate functions
+			code := GenerateBindFunction(structInfo) + GenerateValidateFunction(structInfo)
 
 			// Check that the generated code contains expected elements
 			expectedContains := []string{
