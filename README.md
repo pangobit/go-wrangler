@@ -74,6 +74,51 @@ Run the tool against one or more package directories:
 ./wrangler --strategy single --target-dir ./gen --target-pkg combined pkg1 pkg2
 ```
 
+### Using with `go tool` (Go 1.24+)
+
+In Go 1.24 and later, you can add Go Wrangler as a tool dependency:
+
+```bash
+go get -tool github.com/pangobit/go-wrangler
+```
+
+Then run the tool using `go tool`:
+
+```bash
+go tool github.com/pangobit/go-wrangler [flags] <directories...>
+```
+
+This ensures the tool is available in your development environment without needing to build it separately.
+
+### Using with `go generate`
+
+You can integrate Go Wrangler into your build process using `go generate` to automatically generate binding code.
+
+First, ensure you have Go Wrangler built or available. Then add a `go:generate` comment in your Go files:
+
+```go
+package main
+
+//go:generate go run github.com/pangobit/go-wrangler --strategy same .
+
+type User struct {
+    Name string `bind:"header,required"`
+    Age  int    `validate:"min=18"`
+}
+```
+
+Run `go generate` in the directory to generate the code.
+
+For more advanced usage, you can build the tool and use it directly:
+
+```bash
+go build -o wrangler github.com/pangobit/go-wrangler
+# Then in go:generate
+//go:generate ./wrangler --strategy same .
+```
+
+Note: When using `go run`, ensure the module is available in your GOPATH or use Go modules properly.
+
 ## Supported Tags
 
 ### Bind Tags

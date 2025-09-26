@@ -12,7 +12,22 @@ import (
 	"github.com/pangobit/go-wrangler/internal/parse"
 )
 
+func usage() {
+	fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags] <directory> [directories...]\n", os.Args[0])
+	fmt.Fprintf(flag.CommandLine.Output(), "\nGo Wrangler CLI tool for generating binding and validation code.\n\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "Flags:\n")
+	flag.PrintDefaults()
+	fmt.Fprintf(flag.CommandLine.Output(), "\nStrategies:\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "  same    - Generate code in the same package (default)\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "  per     - Generate separate packages for each input\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "  single  - Combine all in one package\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "\nExamples:\n")
+	fmt.Fprintf(flag.CommandLine.Output(), "  %s examples\n", os.Args[0])
+	fmt.Fprintf(flag.CommandLine.Output(), "  %s --strategy per --target-dir ./gen --target-pkgs \"ofoo obar\" foo bar\n", os.Args[0])
+}
+
 func main() {
+	flag.Usage = usage
 	strategy := flag.String("strategy", "same", "Package strategy: same, per, single")
 	targetPkg := flag.String("target-pkg", "", "Target package name for single strategy")
 	targetDir := flag.String("target-dir", "", "Target directory for per or single strategy")
