@@ -1,3 +1,4 @@
+// Package generator generates validation and binding code for the given input
 package generator
 
 import (
