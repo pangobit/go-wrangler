@@ -28,6 +28,52 @@ go get github.com/pangobit/go-wrangler
 
 See the `examples/` directory for usage examples.
 
+## CLI Tool
+
+Go Wrangler also provides a command-line tool to generate binding and validation code for entire packages.
+
+### Installation
+
+Build the CLI:
+
+```bash
+go build -o wrangler .
+```
+
+### Usage
+
+Run the tool against one or more package directories:
+
+```bash
+./wrangler [flags] <directory> [directories...]
+```
+
+### Flags
+
+- `--strategy`: Package strategy (`same`, `per`, `single`). Default: `same`
+- `--target-pkg`: Target package name for `single` strategy
+- `--target-dir`: Target directory for `per` or `single` strategy
+- `--target-pkgs`: Target package names for `per` strategy (space-separated)
+
+### Strategies
+
+- `same`: Generate code in the same package, creating `<package_name>_bindings.go` in each input directory
+- `per`: Generate separate packages for each input, requires `--target-dir` and `--target-pkgs` (must match number of inputs)
+- `single`: Combine all structs into one package, requires `--target-dir` and `--target-pkg`
+
+### Examples
+
+```bash
+# Generate in same package
+./wrangler examples
+
+# Generate separate packages
+./wrangler --strategy per --target-dir ./gen --target-pkgs "bindings1 bindings2" pkg1 pkg2
+
+# Generate all in one package
+./wrangler --strategy single --target-dir ./gen --target-pkg combined pkg1 pkg2
+```
+
 ## Supported Tags
 
 ### Bind Tags
