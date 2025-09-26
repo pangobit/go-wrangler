@@ -6,6 +6,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -196,4 +199,71 @@ func parseValidateTag(value string) (*ValidateTag, error) {
 	}
 
 	return validateTag, nil
+}
+
+// ParsePackage parses all Go structs with bind or validate tags in the given directory
+func ParsePackage(dir string) ([]StructInfo, string, error) {
+	var structs []StructInfo
+	var pkgName string
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && path != dir {
+			return fs.SkipDir
+		}
+		if !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+		fileStructs, filePkgName, err := parseFile(path)
+		if err != nil {
+			return err
+		}
+		if pkgName == "" {
+			pkgName = filePkgName
+		} else if pkgName != filePkgName {
+			return fmt.Errorf("inconsistent package names: %s and %s", pkgName, filePkgName)
+		}
+		structs = append(structs, fileStructs...)
+		return nil
+	})
+	return structs, pkgName, err
+}
+
+// parseFile parses a single Go file and extracts structs with tags
+func parseFile(path string) ([]StructInfo, string, error) {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return nil, "", err
+	}
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, src, parser.ParseComments)
+	if err != nil {
+		return nil, "", err
+	}
+
+	pkgName := file.Name.Name
+
+	var structs []StructInfo
+	ast.Inspect(file, func(n ast.Node) bool {
+		typeSpec, ok := n.(*ast.TypeSpec)
+		if !ok {
+			return true
+		}
+		structType, ok := typeSpec.Type.(*ast.StructType)
+		if !ok {
+			return true
+		}
+		var tags []TagInfo
+		for _, field := range structType.Fields.List {
+			if tagInfo, ok := processField(field); ok {
+				tags = append(tags, tagInfo)
+			}
+		}
+		if len(tags) > 0 {
+			structs = append(structs, StructInfo{Name: typeSpec.Name.Name, Tags: tags})
+		}
+		return true
+	})
+	return structs, pkgName, nil
 }

@@ -49,7 +49,9 @@ type User struct {
 			}
 
 			// Generate the bind and validate functions
-			code := GenerateBindFunction(structInfo) + GenerateValidateFunction(structInfo)
+			bindCode, _ := GenerateBindFunction(structInfo)
+			validateCode, _ := GenerateValidateFunction(structInfo)
+			code := bindCode + validateCode
 
 			// Check that the generated code contains expected elements
 			expectedContains := []string{

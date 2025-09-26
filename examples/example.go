@@ -47,8 +47,8 @@ type User struct {
 	}
 
 	// Generate the bind and validate functions
-	bindCode := generator.GenerateBindFunction(structInfo)
-	validateCode := generator.GenerateValidateFunction(structInfo)
+	bindCode, _ := generator.GenerateBindFunction(structInfo)
+	validateCode, _ := generator.GenerateValidateFunction(structInfo)
 
 	// Print the generated bind function
 	fmt.Println("Generated bind function:")
