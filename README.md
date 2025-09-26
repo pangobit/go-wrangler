@@ -1,7 +1,7 @@
 # Go Wrangler
 
-Go Wrangler is a Go library for parsing struct tags and generating HTTP request
-binding and validation code. It automates extracting data from HTTP
+Go Wrangler is a stupid simple Go library for parsing struct tags and generating
+HTTP request binding and validation code. It automates extracting data from HTTP
 requests (headers, query parameters, path parameters) and
 validating it against struct field constraints.
 
@@ -54,4 +54,3 @@ go test ./...
 ## License
 
 Licensed under the MIT License. See LICENSE file for details.
-
