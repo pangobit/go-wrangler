@@ -140,6 +140,27 @@ type User struct {
 				},
 			},
 		},
+		{
+			name: "field with multiple tags including unrelated",
+			source: `package main
+
+type User struct {
+	Name string ` + "`" + `bind:"header,required" json:"name" db:"users.name"` + "`" + `
+}`,
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "Name",
+						FieldType: "string",
+						Bind: &BindTag{
+							Type:     "header",
+							Required: true,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -227,6 +248,14 @@ func TestParseBindTag(t *testing.T) {
 			name:     "empty",
 			input:    "",
 			hasError: true,
+		},
+		{
+			name:  "header with spaces",
+			input: " header ",
+			expected: &BindTag{
+				Type:     "header",
+				Required: false,
+			},
 		},
 	}
 
