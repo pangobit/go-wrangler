@@ -1,5 +1,20 @@
 # Go Wrangler
 
+# Go Wrangler
+
+## Motivation
+
+Building HTTP APIs in Go often requires extracting data from incoming requests (headers, query parameters, path parameters) and binding it to struct fields, followed by validation. Manually writing this binding and validation code is repetitive, error-prone, and time-consuming—especially as your API grows.
+
+Go Wrangler solves this problem by providing a code generation tool that automates the creation of binding and validation functions based on struct tags. It eliminates boilerplate code, reduces bugs from manual implementation, and keeps your handlers clean and focused on business logic.
+
+Use Go Wrangler when:
+- You're building REST APIs or web services in Go
+- You need to bind HTTP request data to structs
+- You want to enforce validation rules on incoming data
+- You prefer generated, consistent code over manual implementation
+- You're using frameworks that don't provide automatic binding/validation
+
 Go Wrangler is a stupid simple Go library for parsing struct tags and generating
 HTTP request binding and validation code. It automates extracting data from HTTP
 requests (headers, query parameters, path parameters) and
