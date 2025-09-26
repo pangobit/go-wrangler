@@ -1,7 +1,5 @@
 # Go Wrangler
 
-# Go Wrangler
-
 ## Motivation
 
 Building HTTP APIs in Go often requires extracting data from incoming requests (headers, query parameters, path parameters) and binding it to struct fields, followed by validation. Manually writing this binding and validation code is repetitive, error-prone, and time-consuming—especially as your API grows.
