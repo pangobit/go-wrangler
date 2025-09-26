@@ -57,7 +57,6 @@ type User struct {
 			expectedContains := []string{
 				fmt.Sprintf("func Bind%s", structInfo.Name),
 				"r *http.Request",
-				"pathParams map[string]string",
 				fmt.Sprintf("s *%s", structInfo.Name),
 				"return nil",
 			}
@@ -81,7 +80,7 @@ type User struct {
 							t.Errorf("Expected query binding for %s", tag.FieldName)
 						}
 					case "path":
-						if !strings.Contains(code, fmt.Sprintf("pathParams[\"%s\"]", tag.FieldName)) {
+						if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", tag.FieldName)) {
 							t.Errorf("Expected path binding for %s", tag.FieldName)
 						}
 					}

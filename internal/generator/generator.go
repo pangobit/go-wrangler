@@ -28,7 +28,7 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 	}
 
 	// Function signature
-	sb.WriteString(fmt.Sprintf("func Bind%s(r *http.Request, pathParams map[string]string, s *%s) error {\n", structInfo.Name, structInfo.Name))
+	sb.WriteString(fmt.Sprintf("func Bind%s(r *http.Request, s *%s) error {\n", structInfo.Name, structInfo.Name))
 
 	// Bind logic
 	for _, tag := range structInfo.Tags {
@@ -40,7 +40,7 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 			case "header":
 				valueExpr = fmt.Sprintf("r.Header.Get(\"%s\")", tag.FieldName)
 			case "path":
-				valueExpr = fmt.Sprintf("pathParams[\"%s\"]", tag.FieldName)
+				valueExpr = fmt.Sprintf("r.PathValue(\"%s\")", tag.FieldName)
 			}
 			if tag.FieldType == "int" {
 				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, tag.FieldName, tag.FieldName))
