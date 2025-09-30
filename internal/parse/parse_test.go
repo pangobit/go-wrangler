@@ -230,6 +230,33 @@ func TestParseBindTag(t *testing.T) {
 			},
 		},
 		{
+			name:  "header with custom name",
+			input: "header=user_name",
+			expected: &BindTag{
+				Type:     "header",
+				Required: false,
+				Name:     &[]string{"user_name"}[0],
+			},
+		},
+		{
+			name:  "query with custom name and required",
+			input: "query=user_id,required",
+			expected: &BindTag{
+				Type:     "query",
+				Required: true,
+				Name:     &[]string{"user_id"}[0],
+			},
+		},
+		{
+			name:  "path with custom name",
+			input: "path=ID",
+			expected: &BindTag{
+				Type:     "path",
+				Required: false,
+				Name:     &[]string{"ID"}[0],
+			},
+		},
+		{
 			name:     "invalid required value",
 			input:    "header,maybe",
 			hasError: true,

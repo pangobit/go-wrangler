@@ -14,10 +14,10 @@ func main() {
 package main
 
 type User struct {
-	Name  string ` + "`bind:\"header,required\"`" + `
-	Email string ` + "`bind:\"query\"`" + `
+	Name  string ` + "`bind:\"header=user_name,required\"`" + `
+	Email string ` + "`bind:\"query=email\"`" + `
 	Age   int    ` + "`validate:\"min=18,max=120\"`" + `
-	ID    string ` + "`bind:\"path,required\" validate:\"max=10\"`" + `
+	ID    string ` + "`bind:\"path=id,required\" validate:\"max=10\"`" + `
 }
 `
 
@@ -33,7 +33,11 @@ type User struct {
 	for _, tag := range structInfo.Tags {
 		fmt.Printf("Field: %s (%s)\n", tag.FieldName, tag.FieldType)
 		if tag.Bind != nil {
-			fmt.Printf("  Bind: %s (required: %v)\n", tag.Bind.Type, tag.Bind.Required)
+			fmt.Printf("  Bind: %s", tag.Bind.Type)
+			if tag.Bind.Name != nil {
+				fmt.Printf(" (name: %s)", *tag.Bind.Name)
+			}
+			fmt.Printf(" (required: %v)\n", tag.Bind.Required)
 		}
 		if tag.Validate != nil {
 			if tag.Validate.Min != nil {

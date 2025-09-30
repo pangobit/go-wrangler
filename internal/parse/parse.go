@@ -34,9 +34,11 @@ type StructInfo struct {
 // - Query: Query params from the URI
 // Required is an optional tag, and is used to specify that a parameter must be present
 // in order for the parameter validation to pass.
+// Name is an optional override for the field name used in binding (e.g., "field" instead of "Field")
 type BindTag struct {
 	Type     string
 	Required bool
+	Name     *string
 }
 
 // ValidateTag represents validate tag information for min and max validation on incoming int values
@@ -149,8 +151,22 @@ func parseBindTag(value string) (*BindTag, error) {
 
 	bindTag := &BindTag{}
 
-	// First part is the type
-	bindTag.Type = strings.TrimSpace(parts[0])
+	// First part is type[=name]
+	typePart := strings.TrimSpace(parts[0])
+	if strings.Contains(typePart, "=") {
+		typeNameParts := strings.SplitN(typePart, "=", 2)
+		if len(typeNameParts) != 2 {
+			return nil, fmt.Errorf("invalid type=name format")
+		}
+		bindTag.Type = strings.TrimSpace(typeNameParts[0])
+		name := strings.TrimSpace(typeNameParts[1])
+		if name != "" {
+			bindTag.Name = &name
+		}
+	} else {
+		bindTag.Type = typePart
+	}
+
 	switch bindTag.Type {
 	case "header", "path", "query":
 		// Valid
@@ -158,14 +174,13 @@ func parseBindTag(value string) (*BindTag, error) {
 		return nil, fmt.Errorf("invalid bind type: %s", bindTag.Type)
 	}
 
-	// Required is implicit: present means required, absent means optional
-	bindTag.Required = false
-	if len(parts) > 1 {
-		requiredStr := strings.TrimSpace(parts[1])
-		if requiredStr == "required" {
+	// Parse additional options
+	for _, part := range parts[1:] {
+		part = strings.TrimSpace(part)
+		if part == "required" {
 			bindTag.Required = true
 		} else {
-			return nil, fmt.Errorf("invalid option: %s", requiredStr)
+			return nil, fmt.Errorf("invalid option: %s", part)
 		}
 	}
 
