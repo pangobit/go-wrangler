@@ -139,7 +139,11 @@ Note: When using `go run`, ensure the module is available in your GOPATH or use 
 - `bind:"header"` - Bind from HTTP header
 - `bind:"query"` - Bind from URL query parameter
 - `bind:"path"` - Bind from URL path parameter
+- `bind:"header=user_name"` - Bind from HTTP header with custom name "user_name"
+- `bind:"query=email"` - Bind from URL query parameter with custom name "email"
+- `bind:"path=id"` - Bind from URL path parameter with custom name "id"
 - `bind:"header,required"` - Required header binding
+- `bind:"header=user_name,required"` - Required header binding with custom name
 
 ### Validate Tags
 

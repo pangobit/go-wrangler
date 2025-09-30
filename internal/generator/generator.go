@@ -33,25 +33,31 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 	// Bind logic
 	for _, tag := range structInfo.Tags {
 		if tag.Bind != nil {
+			// Use custom name if provided, otherwise use field name
+			lookupName := tag.FieldName
+			if tag.Bind.Name != nil {
+				lookupName = *tag.Bind.Name
+			}
+
 			var valueExpr string
 			switch tag.Bind.Type {
 			case "query":
-				valueExpr = fmt.Sprintf("r.URL.Query().Get(\"%s\")", tag.FieldName)
+				valueExpr = fmt.Sprintf("r.URL.Query().Get(\"%s\")", lookupName)
 			case "header":
-				valueExpr = fmt.Sprintf("r.Header.Get(\"%s\")", tag.FieldName)
+				valueExpr = fmt.Sprintf("r.Header.Get(\"%s\")", lookupName)
 			case "path":
-				valueExpr = fmt.Sprintf("r.PathValue(\"%s\")", tag.FieldName)
+				valueExpr = fmt.Sprintf("r.PathValue(\"%s\")", lookupName)
 			}
 			if tag.FieldType == "int" {
-				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, tag.FieldName, tag.FieldName))
+				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, lookupName, tag.FieldName))
 			} else {
 				sb.WriteString(fmt.Sprintf("\ts.%s = %s\n", tag.FieldName, valueExpr))
 			}
 			if tag.Bind.Required {
 				if tag.FieldType == "int" {
-					sb.WriteString(fmt.Sprintf("\tif s.%s == 0 {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, tag.FieldName))
+					sb.WriteString(fmt.Sprintf("\tif s.%s == 0 {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, lookupName))
 				} else {
-					sb.WriteString(fmt.Sprintf("\tif s.%s == \"\" {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, tag.FieldName))
+					sb.WriteString(fmt.Sprintf("\tif s.%s == \"\" {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, lookupName))
 				}
 			}
 		}

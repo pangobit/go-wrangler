@@ -70,22 +70,26 @@ type User struct {
 			// Check specific bindings based on the test case
 			for _, tag := range structInfo.Tags {
 				if tag.Bind != nil {
+					lookupName := tag.FieldName
+					if tag.Bind.Name != nil {
+						lookupName = *tag.Bind.Name
+					}
 					switch tag.Bind.Type {
 					case "header":
-						if !strings.Contains(code, fmt.Sprintf("r.Header.Get(\"%s\")", tag.FieldName)) {
+						if !strings.Contains(code, fmt.Sprintf("r.Header.Get(\"%s\")", lookupName)) {
 							t.Errorf("Expected header binding for %s", tag.FieldName)
 						}
 					case "query":
-						if !strings.Contains(code, fmt.Sprintf("r.URL.Query().Get(\"%s\")", tag.FieldName)) {
+						if !strings.Contains(code, fmt.Sprintf("r.URL.Query().Get(\"%s\")", lookupName)) {
 							t.Errorf("Expected query binding for %s", tag.FieldName)
 						}
 					case "path":
-						if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", tag.FieldName)) {
+						if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
 							t.Errorf("Expected path binding for %s", tag.FieldName)
 						}
 					}
 					if tag.Bind.Required {
-						if !strings.Contains(code, fmt.Sprintf("%s is required", tag.FieldName)) {
+						if !strings.Contains(code, fmt.Sprintf("%s is required", lookupName)) {
 							t.Errorf("Expected required check for %s", tag.FieldName)
 						}
 					}
