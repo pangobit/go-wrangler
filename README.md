@@ -15,14 +15,14 @@ Use Go Wrangler when:
 
 Go Wrangler is a stupid simple Go library for parsing struct tags and generating
 HTTP request binding and validation code. It automates extracting data from HTTP
-requests (headers, query parameters, path parameters) and
+requests (headers, query parameters, path parameters, **form data**) and
 validating it against struct field constraints.
 
 ## Features
 
 - Parse Go struct tags for `bind` and `validate` directives
 - Generate Go functions to bind HTTP request data to structs
-- Support for header, query, and path parameter binding
+- Support for header, query, path, and **form** parameter binding
 - Validation for min/max values on integer fields
 - Required field enforcement
 
@@ -115,8 +115,10 @@ package main
 //go:generate go run github.com/pangobit/go-wrangler --strategy same .
 
 type User struct {
-    Name string `bind:"header,required"`
-    Age  int    `validate:"min=18"`
+    Name     string `bind:"header,required"`
+    Email    string `bind:"query"`
+    Password string `bind:"form,required"`
+    Age      int    `validate:"min=18"`
 }
 ```
 
@@ -139,17 +141,39 @@ Note: When using `go run`, ensure the module is available in your GOPATH or use 
 - `bind:"header"` - Bind from HTTP header
 - `bind:"query"` - Bind from URL query parameter
 - `bind:"path"` - Bind from URL path parameter
+- `bind:"form"` - Bind from POST form data (application/x-www-form-urlencoded or multipart/form-data)
 - `bind:"header=user_name"` - Bind from HTTP header with custom name "user_name"
 - `bind:"query=email"` - Bind from URL query parameter with custom name "email"
 - `bind:"path=id"` - Bind from URL path parameter with custom name "id"
+- `bind:"form=password"` - Bind from POST form data with custom name "password"
 - `bind:"header,required"` - Required header binding
-- `bind:"header=user_name,required"` - Required header binding with custom name
+- `bind:"form=user_name,required"` - Required form binding with custom name
 
 ### Validate Tags
 
 - `validate:"min=18"` - Minimum value for integers
 - `validate:"max=120"` - Maximum value for integers
 - `validate:"min=10,max=100"` - Both min and max
+
+## Form Data Binding
+
+Form data binding is useful for POST requests that submit data as `application/x-www-form-urlencoded` or `multipart/form-data` (typically from HTML forms or API clients). The generated code uses Go's `http.Request.FormValue()` method, which automatically parses form data when called.
+
+Form binding works with both single-part form data and multipart uploads, making it suitable for:
+- Traditional HTML form submissions
+- API requests with form-encoded data
+- File uploads (when combined with multipart parsing)
+
+**Example:**
+```go
+type CreateUserRequest struct {
+    Username string `bind:"form=username,required"`
+    Email    string `bind:"form=email,required"`
+    Age      int    `bind:"form=age" validate:"min=13,max=120"`
+}
+```
+
+This generates code that extracts values from `r.FormValue("username")`, `r.FormValue("email")`, and `r.FormValue("age")`.
 
 ## Testing
 
