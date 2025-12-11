@@ -315,6 +315,11 @@ func TestParseBindTag(t *testing.T) {
 			hasError: true,
 		},
 		{
+			name:     "invalid bind tag with name before required",
+			input:    "form,password,required",
+			hasError: true,
+		},
+		{
 			name:  "header with spaces",
 			input: " header ",
 			expected: &BindTag{
