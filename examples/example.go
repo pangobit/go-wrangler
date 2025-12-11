@@ -14,10 +14,11 @@ func main() {
 package main
 
 type User struct {
-	Name  string ` + "`bind:\"header=user_name,required\"`" + `
-	Email string ` + "`bind:\"query=email\"`" + `
-	Age   int    ` + "`validate:\"min=18,max=120\"`" + `
-	ID    string ` + "`bind:\"path=id,required\" validate:\"max=10\"`" + `
+	Name     string ` + "`bind:\"header=user_name,required\"`" + `
+	Email    string ` + "`bind:\"query=email\"`" + `
+	Password string ` + "`bind:\"form=password,required\"`" + `
+	Age      int    ` + "`validate:\"min=18,max=120\"`" + `
+	ID       string ` + "`bind:\"path=id,required\" validate:\"max=10\"`" + `
 }
 `
 
