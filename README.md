@@ -15,14 +15,14 @@ Use Go Wrangler when:
 
 Go Wrangler is a stupid simple Go library for parsing struct tags and generating
 HTTP request binding and validation code. It automates extracting data from HTTP
-requests (headers, query parameters, path parameters, **form data**) and
+requests (headers, query parameters, path parameters, form data) and
 validating it against struct field constraints.
 
 ## Features
 
 - Parse Go struct tags for `bind` and `validate` directives
 - Generate Go functions to bind HTTP request data to structs
-- Support for header, query, path, and **form** parameter binding
+- Support for header, query, path, and form parameter binding
 - Validation for min/max values on integer fields
 - Required field enforcement
 
@@ -147,6 +147,7 @@ Note: When using `go run`, ensure the module is available in your GOPATH or use 
 - `bind:"path=id"` - Bind from URL path parameter with custom name "id"
 - `bind:"form=password"` - Bind from POST form data with custom name "password"
 - `bind:"header,required"` - Required header binding
+- `bind:"header=user_name,required"` - Required header binding with custom name
 - `bind:"form=user_name,required"` - Required form binding with custom name
 
 ### Validate Tags
