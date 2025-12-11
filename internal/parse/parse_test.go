@@ -86,6 +86,27 @@ type User struct {
 			},
 		},
 		{
+			name: "bind tag with form type",
+			source: `package main
+
+type User struct {
+	Name string ` + "`" + `bind:"form,required"` + "`" + `
+}`,
+			expected: StructInfo{
+				Name: "User",
+				Tags: []TagInfo{
+					{
+						FieldName: "Name",
+						FieldType: "string",
+						Bind: &BindTag{
+							Type:     "form",
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "no tags",
 			source: `package main
 
@@ -230,6 +251,14 @@ func TestParseBindTag(t *testing.T) {
 			},
 		},
 		{
+			name:  "form default optional",
+			input: "form",
+			expected: &BindTag{
+				Type:     "form",
+				Required: false,
+			},
+		},
+		{
 			name:  "header with custom name",
 			input: "header=user_name",
 			expected: &BindTag{
@@ -257,6 +286,15 @@ func TestParseBindTag(t *testing.T) {
 			},
 		},
 		{
+			name:  "form with custom name and required",
+			input: "form=user_name,required",
+			expected: &BindTag{
+				Type:     "form",
+				Required: true,
+				Name:     &[]string{"user_name"}[0],
+			},
+		},
+		{
 			name:     "invalid required value",
 			input:    "header,maybe",
 			hasError: true,
@@ -274,6 +312,11 @@ func TestParseBindTag(t *testing.T) {
 		{
 			name:     "empty",
 			input:    "",
+			hasError: true,
+		},
+		{
+			name:     "invalid bind tag with name before required",
+			input:    "form,password,required",
 			hasError: true,
 		},
 		{
@@ -435,6 +478,23 @@ func TestProcessField(t *testing.T) {
 					Required: true,
 				},
 				Validate: &ValidateTag{Max: &[]int{100}[0]},
+			},
+			hasTag: true,
+		},
+		{
+			name:  "field with form bind and validate tags",
+			field: createField("Age", `bind:"form,required" validate:"min=18,max=120"`),
+			expected: TagInfo{
+				FieldName: "Age",
+				FieldType: "int",
+				Bind: &BindTag{
+					Type:     "form",
+					Required: true,
+				},
+				Validate: &ValidateTag{
+					Min: &[]int{18}[0],
+					Max: &[]int{120}[0],
+				},
 			},
 			hasTag: true,
 		},

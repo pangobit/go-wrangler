@@ -47,6 +47,8 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 				valueExpr = fmt.Sprintf("r.Header.Get(\"%s\")", lookupName)
 			case "path":
 				valueExpr = fmt.Sprintf("r.PathValue(\"%s\")", lookupName)
+			case "form":
+				valueExpr = fmt.Sprintf("r.FormValue(\"%s\")", lookupName)
 			}
 			if tag.FieldType == "int" {
 				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, lookupName, tag.FieldName))
@@ -55,7 +57,7 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 			}
 			if tag.Bind.Required {
 				if tag.FieldType == "int" {
-					sb.WriteString(fmt.Sprintf("\tif s.%s == 0 {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, lookupName))
+					sb.WriteString(fmt.Sprintf("\tif %s == \"\" {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", valueExpr, lookupName))
 				} else {
 					sb.WriteString(fmt.Sprintf("\tif s.%s == \"\" {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, lookupName))
 				}

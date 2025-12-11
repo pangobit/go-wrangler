@@ -28,10 +28,11 @@ type StructInfo struct {
 }
 
 // BindTag represents bind tag information
-// Type refers to the one of three possible options:
+// Type refers to the one of four possible options:
 // - Header: http header params
 // - Path: Path parameters, e.g., in /user/{id}, {id} would be the path parameter
 // - Query: Query params from the URI
+// - Form: Form data from POST body (application/x-www-form-urlencoded or multipart/form-data)
 // Required is an optional tag, and is used to specify that a parameter must be present
 // in order for the parameter validation to pass.
 // Name is an optional override for the field name used in binding (e.g., "field" instead of "Field")
@@ -168,7 +169,7 @@ func parseBindTag(value string) (*BindTag, error) {
 	}
 
 	switch bindTag.Type {
-	case "header", "path", "query":
+	case "header", "path", "query", "form":
 		// Valid
 	default:
 		return nil, fmt.Errorf("invalid bind type: %s", bindTag.Type)
