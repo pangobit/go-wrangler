@@ -1,4 +1,4 @@
-// Package parse parses the incoming struct tags
+// Package parse provides functionality to parse Go struct tags for binding and validation.
 package parse
 
 import (
@@ -13,21 +13,27 @@ import (
 	"strings"
 )
 
-// TagInfo represents the extracted tag information
+// TagInfo represents the extracted tag information from a struct field.
 type TagInfo struct {
+	// FieldName is the name of the struct field.
 	FieldName string
+	// FieldType is the Go type of the field as a string (e.g., "string", "int", "[]string").
 	FieldType string
-	Bind      *BindTag
-	Validate  *ValidateTag
+	// Bind contains the parsed "bind" tag information, or nil if not present.
+	Bind *BindTag
+	// Validate contains the parsed "validate" tag information, or nil if not present.
+	Validate *ValidateTag
 }
 
-// StructInfo represents the parsed struct information
+// StructInfo represents information about a parsed Go struct.
 type StructInfo struct {
+	// Name is the name of the struct.
 	Name string
+	// Tags contains information about the fields in the struct that have relevant tags.
 	Tags []TagInfo
 }
 
-// BindTag represents bind tag information
+// BindTag represents the information extracted from a "bind" struct tag.
 // Type refers to the one of four possible options:
 // - Header: http header params
 // - Path: Path parameters, e.g., in /user/{id}, {id} would be the path parameter
@@ -37,20 +43,23 @@ type StructInfo struct {
 // in order for the parameter validation to pass.
 // Name is an optional override for the field name used in binding (e.g., "field" instead of "Field")
 type BindTag struct {
-	Type     string
+	// Type is the source of the binding (header, path, query, or form).
+	Type string
+	// Required indicates if the field must be present.
 	Required bool
-	Name     *string
+	// Name is the optional override for the source key name.
+	Name *string
 }
 
-// ValidateTag represents validate tag information for min and max validation on incoming int values
-// Min specifies the minimum value (inclusive), nil if not specified
-// Max specifies the maximum value (inclusive), nil if not specified
+// ValidateTag represents the information extracted from a "validate" struct tag.
 type ValidateTag struct {
+	// Min specifies the minimum value (inclusive), nil if not specified.
 	Min *int
+	// Max specifies the maximum value (inclusive), nil if not specified.
 	Max *int
 }
 
-// ParseStruct parses a Go struct source code and extracts tag information
+// ParseStruct parses a Go struct from source code and extracts its binding and validation tags.
 func ParseStruct(source string) (StructInfo, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", source, parser.ParseComments)
@@ -98,6 +107,10 @@ func processField(field *ast.Field) (TagInfo, bool) {
 	// Set field type
 	if ident, ok := field.Type.(*ast.Ident); ok {
 		tagInfo.FieldType = ident.Name
+	} else if arrayType, ok := field.Type.(*ast.ArrayType); ok {
+		if ident, ok := arrayType.Elt.(*ast.Ident); ok {
+			tagInfo.FieldType = "[]" + ident.Name
+		}
 	}
 
 	if bindStr := extractTagValue(tag, "bind"); bindStr != "" {
@@ -217,7 +230,7 @@ func parseValidateTag(value string) (*ValidateTag, error) {
 	return validateTag, nil
 }
 
-// ParsePackage parses all Go structs with bind or validate tags in the given directory
+// ParsePackage parses all Go structs containing "bind" or "validate" tags within the specified directory.
 func ParsePackage(dir string) ([]StructInfo, string, error) {
 	var structs []StructInfo
 	var pkgName string
