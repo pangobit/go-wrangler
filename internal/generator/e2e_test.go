@@ -130,6 +130,10 @@ type User struct {
 							if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
 								t.Errorf("Expected path binding for %s", tag.FieldName)
 							}
+						} else {
+							if strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
+								t.Errorf("Path binding for %s should be skipped for []string", tag.FieldName)
+							}
 						}
 					case "form":
 						if tag.FieldType == "[]string" {

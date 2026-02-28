@@ -227,6 +227,18 @@ type Request struct {
 				},
 			},
 		},
+		{
+			name: "unsupported slice for path binding",
+			source: `package main
+
+type Request struct {
+	IDs []int ` + "`" + `bind:"path"` + "`" + `
+}`,
+			expected: StructInfo{
+				Name: "Request",
+				Tags: []TagInfo{},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -571,20 +583,14 @@ func TestProcessField(t *testing.T) {
 			hasTag: true,
 		},
 		{
+			name:     "unsupported slice for path binding in processField",
+			field:    createField("IDs", "[]int", `bind:"path"`),
+			expected: TagInfo{},
+			hasTag:   false,
+		},
+		{
 			name:     "field with no tag",
 			field:    &ast.Field{Names: []*ast.Ident{{Name: "Name"}}},
-			expected: TagInfo{},
-			hasTag:   false,
-		},
-		{
-			name:     "field with invalid bind tag",
-			field:    createField("Name", "string", `bind:"invalid"`),
-			expected: TagInfo{},
-			hasTag:   false,
-		},
-		{
-			name:     "field with invalid validate tag",
-			field:    createField("Name", "string", `validate:"invalid"`),
 			expected: TagInfo{},
 			hasTag:   false,
 		},

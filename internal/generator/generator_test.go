@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/pangobit/go-wrangler/internal/parse"
@@ -138,5 +139,25 @@ func ValidateUser(s *User) error {
 
 	if result != expected {
 		t.Errorf("TestGenerateFormWithValidation() = %v, want %v", result, expected)
+	}
+}
+
+func TestUnsupportedSlicePath(t *testing.T) {
+	structInfo := parse.StructInfo{
+		Name: "User",
+		Tags: []parse.TagInfo{
+			{
+				FieldName: "IDs",
+				FieldType: "[]string",
+				Bind: &parse.BindTag{
+					Type: "path",
+				},
+			},
+		},
+	}
+
+	bindCode, _ := GenerateBindFunction(structInfo)
+	if strings.Contains(bindCode, "IDs") {
+		t.Errorf("GenerateBindFunction should skip []string for path binding, but it was found in output: %v", bindCode)
 	}
 }
