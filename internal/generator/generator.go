@@ -36,7 +36,7 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 	sb.WriteString(fmt.Sprintf("func Bind%s(r *http.Request, s *%s) error {\n", structInfo.Name, structInfo.Name))
 
 	if needsFormParse {
-		sb.WriteString("\tif r.Form == nil {\n\t\tr.ParseMultipartForm(32 << 20)\n\t}\n")
+		sb.WriteString("\tr.ParseMultipartForm(32 << 20)\n")
 	}
 
 	// Bind logic
@@ -48,32 +48,41 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 				lookupName = *tag.Bind.Name
 			}
 
-			valueExpr, ok := valueExpr(tag.Bind.Type, tag.FieldType, lookupName)
-			if !ok {
+			isSlice := strings.HasPrefix(tag.FieldType, "[]")
+			var expr string
+
+			switch tag.Bind.Type {
+			case "query":
+				expr = fmt.Sprintf("r.URL.Query().Get(\"%s\")", lookupName)
+			case "header":
+				expr = fmt.Sprintf("r.Header.Get(\"%s\")", lookupName)
+			case "path":
+				expr = fmt.Sprintf("r.PathValue(\"%s\")", lookupName)
+			case "form":
+				expr = fmt.Sprintf("r.Form.Get(\"%s\")", lookupName)
+				if isSlice {
+					expr = fmt.Sprintf("r.Form[\"%s\"]", lookupName)
+				}
+			default:
 				continue
 			}
 
-			isSlice := strings.HasPrefix(tag.FieldType, "[]")
-
 			if tag.FieldType == "int" {
-				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, lookupName, tag.FieldName))
+				sb.WriteString(fmt.Sprintf("\tif val := %s; val != \"\" {\n\t\tif val, err := strconv.Atoi(val); err != nil {\n\t\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t\t} else {\n\t\t\ts.%s = val\n\t\t}\n\t}\n", expr, lookupName, tag.FieldName))
 			} else if tag.FieldType == "[]int" {
-				sb.WriteString(fmt.Sprintf("\t{\n\t\tvals := %s\n\t\ts.%s = make([]int, len(vals))\n\t\tfor i, v := range vals {\n\t\t\tif iv, err := strconv.Atoi(v); err != nil {\n\t\t\t\treturn fmt.Errorf(\"%s at index %%d must be a valid integer\", i)\n\t\t\t} else {\n\t\t\t\ts.%s[i] = iv\n\t\t\t}\n\t\t}\n\t}\n", valueExpr, tag.FieldName, lookupName, tag.FieldName))
+				sb.WriteString(fmt.Sprintf("\t{\n\t\tvals := %s\n\t\ts.%s = make([]int, len(vals))\n\t\tfor i, v := range vals {\n\t\t\tif iv, err := strconv.Atoi(v); err != nil {\n\t\t\t\treturn fmt.Errorf(\"%s at index %%d must be a valid integer\", i)\n\t\t\t} else {\n\t\t\t\ts.%s[i] = iv\n\t\t\t}\n\t\t}\n\t}\n", expr, tag.FieldName, lookupName, tag.FieldName))
 			} else {
-				sb.WriteString(fmt.Sprintf("\ts.%s = %s\n", tag.FieldName, valueExpr))
+				sb.WriteString(fmt.Sprintf("\ts.%s = %s\n", tag.FieldName, expr))
 			}
 
 			if tag.Bind.Required {
+				check := "s." + tag.FieldName + " == \"\""
 				if isSlice {
-					sb.WriteString(fmt.Sprintf("\tif len(s.%s) == 0 {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", tag.FieldName, lookupName))
-				} else {
-					// Use valueExpr for required check if it's a scalar from request
-					checkExpr := valueExpr
-					if tag.FieldType != "int" {
-						checkExpr = "s." + tag.FieldName
-					}
-					sb.WriteString(fmt.Sprintf("\tif %s == \"\" {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", checkExpr, lookupName))
+					check = "len(s." + tag.FieldName + ") == 0"
+				} else if tag.FieldType == "int" {
+					check = expr + " == \"\""
 				}
+				sb.WriteString(fmt.Sprintf("\tif %s {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", check, lookupName))
 			}
 		}
 	}
@@ -168,35 +177,4 @@ func GeneratePackage(structs []parse.StructInfo, pkgName string) string {
 	}
 
 	return sb.String()
-}
-
-// valueExpr returns the Go code snippet for extracting a value from the request.
-// It returns the expression and a boolean indicating if the source/type combination is supported.
-func valueExpr(source, fieldType, key string) (string, bool) {
-	isSlice := strings.HasPrefix(fieldType, "[]")
-
-	switch source {
-	case "query":
-		if isSlice {
-			return fmt.Sprintf("r.URL.Query()[\"%s\"]", key), true
-		}
-		return fmt.Sprintf("r.URL.Query().Get(\"%s\")", key), true
-	case "header":
-		if isSlice {
-			return fmt.Sprintf("r.Header.Values(\"%s\")", key), true
-		}
-		return fmt.Sprintf("r.Header.Get(\"%s\")", key), true
-	case "form":
-		if isSlice {
-			return fmt.Sprintf("r.Form[\"%s\"]", key), true
-		}
-		return fmt.Sprintf("r.FormValue(\"%s\")", key), true
-	case "path":
-		if isSlice {
-			return "", false // Not natively supported
-		}
-		return fmt.Sprintf("r.PathValue(\"%s\")", key), true
-	default:
-		return "", false
-	}
 }

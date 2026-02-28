@@ -184,7 +184,7 @@ type User struct {
 			},
 		},
 		{
-			name: "slice of strings with bind tag",
+			name: "slice of strings with bind tag (unsupported query)",
 			source: `package main
 
 type Request struct {
@@ -192,17 +192,7 @@ type Request struct {
 }`,
 			expected: StructInfo{
 				Name: "Request",
-				Tags: []TagInfo{
-					{
-						FieldName: "Items",
-						FieldType: "[]string",
-						Bind: &BindTag{
-							Type:     "query",
-							Required: false,
-							Name:     &[]string{"items"}[0],
-						},
-					},
-				},
+				Tags: []TagInfo{},
 			},
 		},
 		{
@@ -570,17 +560,10 @@ func TestProcessField(t *testing.T) {
 			hasTag: true,
 		},
 		{
-			name:  "field with slice type",
-			field: createField("IDs", "[]int", `bind:"query=id"`),
-			expected: TagInfo{
-				FieldName: "IDs",
-				FieldType: "[]int",
-				Bind: &BindTag{
-					Type: "query",
-					Name: &[]string{"id"}[0],
-				},
-			},
-			hasTag: true,
+			name:     "unsupported slice for query binding",
+			field:    createField("IDs", "[]int", `bind:"query=id"`),
+			expected: TagInfo{},
+			hasTag:   false,
 		},
 		{
 			name:     "unsupported slice for path binding in processField",

@@ -43,8 +43,6 @@ type User struct {
 			source: `package main
 
 type User struct {
-	Tags   []string ` + "`bind:\"query=tag\"`" + `
-	Roles  []string ` + "`bind:\"header=X-Role\"`" + `
 	Colors []string ` + "`bind:\"form=color,required\"`" + `
 }`,
 		},
@@ -61,7 +59,7 @@ type User struct {
 			source: `package main
 
 type User struct {
-	IDs []int ` + "`bind:\"query=id\"`" + `
+	IDs []int ` + "`bind:\"form=id\"`" + `
 }`,
 		},
 	}
@@ -102,38 +100,16 @@ type User struct {
 					}
 					switch tag.Bind.Type {
 					case "header":
-						if tag.FieldType == "[]string" {
-							if !strings.Contains(code, fmt.Sprintf("r.Header.Values(\"%s\")", lookupName)) {
-								t.Errorf("Expected header slice binding for %s", tag.FieldName)
-							}
-						} else {
-							if !strings.Contains(code, fmt.Sprintf("r.Header.Get(\"%s\")", lookupName)) {
-								t.Errorf("Expected header binding for %s", tag.FieldName)
-							}
+						if !strings.Contains(code, fmt.Sprintf("r.Header.Get(\"%s\")", lookupName)) {
+							t.Errorf("Expected header binding for %s", tag.FieldName)
 						}
 					case "query":
-						if tag.FieldType == "[]string" {
-							if !strings.Contains(code, fmt.Sprintf("r.URL.Query()[\"%s\"]", lookupName)) {
-								t.Errorf("Expected query slice binding for %s", tag.FieldName)
-							}
-						} else if tag.FieldType == "[]int" {
-							if !strings.Contains(code, fmt.Sprintf("strconv.Atoi")) {
-								t.Errorf("Expected strconv.Atoi for []int conversion")
-							}
-						} else {
-							if !strings.Contains(code, fmt.Sprintf("r.URL.Query().Get(\"%s\")", lookupName)) {
-								t.Errorf("Expected query binding for %s", tag.FieldName)
-							}
+						if !strings.Contains(code, fmt.Sprintf("r.URL.Query().Get(\"%s\")", lookupName)) {
+							t.Errorf("Expected query binding for %s", tag.FieldName)
 						}
 					case "path":
-						if tag.FieldType != "[]string" {
-							if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
-								t.Errorf("Expected path binding for %s", tag.FieldName)
-							}
-						} else {
-							if strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
-								t.Errorf("Path binding for %s should be skipped for []string", tag.FieldName)
-							}
+						if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
+							t.Errorf("Expected path binding for %s", tag.FieldName)
 						}
 					case "form":
 						if tag.FieldType == "[]string" {
@@ -143,8 +119,12 @@ type User struct {
 							if !strings.Contains(code, "r.ParseMultipartForm") {
 								t.Errorf("Expected ParseMultipartForm call for form binding")
 							}
+						} else if tag.FieldType == "[]int" {
+							if !strings.Contains(code, "strconv.Atoi") {
+								t.Errorf("Expected strconv.Atoi for []int conversion in form")
+							}
 						} else {
-							if !strings.Contains(code, fmt.Sprintf("r.FormValue(\"%s\")", lookupName)) {
+							if !strings.Contains(code, fmt.Sprintf("r.Form.Get(\"%s\")", lookupName)) {
 								t.Errorf("Expected form binding for %s", tag.FieldName)
 							}
 						}

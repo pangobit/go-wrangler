@@ -131,7 +131,7 @@ func processField(field *ast.Field) (TagInfo, bool) {
 		tagInfo.Validate = validateTag
 	}
 
-	if tagInfo.Bind != nil && tagInfo.Bind.Type == "path" && strings.HasPrefix(tagInfo.FieldType, "[]") {
+	if tagInfo.Bind != nil && tagInfo.Bind.Type != "form" && strings.HasPrefix(tagInfo.FieldType, "[]") {
 		return TagInfo{}, false
 	}
 
