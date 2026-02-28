@@ -38,6 +38,30 @@ type User struct {
 	Name string ` + "`bind:\"header,required\"`" + `
 }`,
 		},
+		{
+			name: "slice bindings",
+			source: `package main
+
+type User struct {
+	Colors []string ` + "`bind:\"form=color,required\"`" + `
+}`,
+		},
+		{
+			name: "unsupported path slice",
+			source: `package main
+
+type User struct {
+	ID []string ` + "`bind:\"path\"`" + `
+}`,
+		},
+		{
+			name: "slice of ints",
+			source: `package main
+
+type User struct {
+	IDs []int ` + "`bind:\"form=id\"`" + `
+}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -87,9 +111,30 @@ type User struct {
 						if !strings.Contains(code, fmt.Sprintf("r.PathValue(\"%s\")", lookupName)) {
 							t.Errorf("Expected path binding for %s", tag.FieldName)
 						}
+					case "form":
+						if tag.FieldType == "[]string" {
+							if !strings.Contains(code, fmt.Sprintf("r.Form[\"%s\"]", lookupName)) {
+								t.Errorf("Expected form slice binding for %s", tag.FieldName)
+							}
+							if !strings.Contains(code, "r.ParseMultipartForm") {
+								t.Errorf("Expected ParseMultipartForm call for form binding")
+							}
+						} else if tag.FieldType == "[]int" {
+							if !strings.Contains(code, "strconv.Atoi") {
+								t.Errorf("Expected strconv.Atoi for []int conversion in form")
+							}
+						} else {
+							if !strings.Contains(code, fmt.Sprintf("r.Form.Get(\"%s\")", lookupName)) {
+								t.Errorf("Expected form binding for %s", tag.FieldName)
+							}
+						}
 					}
 					if tag.Bind.Required {
-						if !strings.Contains(code, fmt.Sprintf("%s is required", lookupName)) {
+						if tag.FieldType == "[]string" {
+							if !strings.Contains(code, fmt.Sprintf("len(s.%s) == 0", tag.FieldName)) {
+								t.Errorf("Expected slice required check for %s", tag.FieldName)
+							}
+						} else if !strings.Contains(code, fmt.Sprintf("%s is required", lookupName)) {
 							t.Errorf("Expected required check for %s", tag.FieldName)
 						}
 					}

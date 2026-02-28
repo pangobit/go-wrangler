@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/token"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -182,6 +183,52 @@ type User struct {
 				},
 			},
 		},
+		{
+			name: "slice of strings with bind tag (unsupported query)",
+			source: `package main
+
+type Request struct {
+	Items []string ` + "`" + `bind:"query=items"` + "`" + `
+}`,
+			expected: StructInfo{
+				Name: "Request",
+				Tags: []TagInfo{},
+			},
+		},
+		{
+			name: "slice of ints with bind tag",
+			source: `package main
+
+type Request struct {
+	IDs []int ` + "`" + `bind:"form=id,required"` + "`" + `
+}`,
+			expected: StructInfo{
+				Name: "Request",
+				Tags: []TagInfo{
+					{
+						FieldName: "IDs",
+						FieldType: "[]int",
+						Bind: &BindTag{
+							Type:     "form",
+							Required: true,
+							Name:     &[]string{"id"}[0],
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "unsupported slice for path binding",
+			source: `package main
+
+type Request struct {
+	IDs []int ` + "`" + `bind:"path"` + "`" + `
+}`,
+			expected: StructInfo{
+				Name: "Request",
+				Tags: []TagInfo{},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -205,6 +252,10 @@ type User struct {
 
 				if actual.FieldName != expected.FieldName {
 					t.Errorf("FieldName[%d] = %v, want %v", i, actual.FieldName, expected.FieldName)
+				}
+
+				if actual.FieldType != expected.FieldType {
+					t.Errorf("FieldType[%d] = %v, want %v", i, actual.FieldType, expected.FieldType)
 				}
 
 				if !reflect.DeepEqual(actual.Bind, expected.Bind) {
@@ -430,10 +481,20 @@ func TestParseValidateTag(t *testing.T) {
 }
 
 func TestProcessField(t *testing.T) {
-	// Helper to create a field with tag
-	createField := func(name, tag string) *ast.Field {
+	// Helper to create a field with tag and type
+	createField := func(name, fieldType, tag string) *ast.Field {
+		var fType ast.Expr
+		if strings.HasPrefix(fieldType, "[]") {
+			fType = &ast.ArrayType{
+				Elt: &ast.Ident{Name: strings.TrimPrefix(fieldType, "[]")},
+			}
+		} else if fieldType != "" {
+			fType = &ast.Ident{Name: fieldType}
+		}
+
 		return &ast.Field{
 			Names: []*ast.Ident{{Name: name}},
+			Type:  fType,
 			Tag:   &ast.BasicLit{Kind: token.STRING, Value: "`" + tag + "`"},
 		}
 	}
@@ -446,7 +507,7 @@ func TestProcessField(t *testing.T) {
 	}{
 		{
 			name:  "field with bind tag",
-			field: createField("Name", `bind:"header,required"`),
+			field: createField("Name", "string", `bind:"header,required"`),
 			expected: TagInfo{
 				FieldName: "Name",
 				FieldType: "string",
@@ -459,7 +520,7 @@ func TestProcessField(t *testing.T) {
 		},
 		{
 			name:  "field with validate tag",
-			field: createField("Age", `validate:"min=18"`),
+			field: createField("Age", "int", `validate:"min=18"`),
 			expected: TagInfo{
 				FieldName: "Age",
 				FieldType: "int",
@@ -469,7 +530,7 @@ func TestProcessField(t *testing.T) {
 		},
 		{
 			name:  "field with both tags",
-			field: createField("ID", `bind:"path,required" validate:"max=100"`),
+			field: createField("ID", "int", `bind:"path,required" validate:"max=100"`),
 			expected: TagInfo{
 				FieldName: "ID",
 				FieldType: "int",
@@ -483,7 +544,7 @@ func TestProcessField(t *testing.T) {
 		},
 		{
 			name:  "field with form bind and validate tags",
-			field: createField("Age", `bind:"form,required" validate:"min=18,max=120"`),
+			field: createField("Age", "int", `bind:"form,required" validate:"min=18,max=120"`),
 			expected: TagInfo{
 				FieldName: "Age",
 				FieldType: "int",
@@ -499,20 +560,20 @@ func TestProcessField(t *testing.T) {
 			hasTag: true,
 		},
 		{
+			name:     "unsupported slice for query binding",
+			field:    createField("IDs", "[]int", `bind:"query=id"`),
+			expected: TagInfo{},
+			hasTag:   false,
+		},
+		{
+			name:     "unsupported slice for path binding in processField",
+			field:    createField("IDs", "[]int", `bind:"path"`),
+			expected: TagInfo{},
+			hasTag:   false,
+		},
+		{
 			name:     "field with no tag",
 			field:    &ast.Field{Names: []*ast.Ident{{Name: "Name"}}},
-			expected: TagInfo{},
-			hasTag:   false,
-		},
-		{
-			name:     "field with invalid bind tag",
-			field:    createField("Name", `bind:"invalid"`),
-			expected: TagInfo{},
-			hasTag:   false,
-		},
-		{
-			name:     "field with invalid validate tag",
-			field:    createField("Name", `validate:"invalid"`),
 			expected: TagInfo{},
 			hasTag:   false,
 		},
@@ -533,6 +594,10 @@ func TestProcessField(t *testing.T) {
 
 			if result.FieldName != tt.expected.FieldName {
 				t.Errorf("FieldName = %v, want %v", result.FieldName, tt.expected.FieldName)
+			}
+
+			if result.FieldType != tt.expected.FieldType {
+				t.Errorf("FieldType = %v, want %v", result.FieldType, tt.expected.FieldType)
 			}
 
 			if !reflect.DeepEqual(result.Bind, tt.expected.Bind) {

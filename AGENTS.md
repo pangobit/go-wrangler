@@ -23,4 +23,4 @@ for receivers.
   - Use `UPPER_SNAKE_CASE` for constants.
 - **Error Handling:** Use `if err != nil` for error handling. Don't discard
 errors with `_`.
-- **Comments:** Use `//` for comments. Add comments to explain complex logic.
+- **Comments:** Provide at least one package-level comment, add comments to exported functions, and to all struct fields, in a go doc friendly format. Do not use inline comments to explain code. Code should be self-explanatory.
