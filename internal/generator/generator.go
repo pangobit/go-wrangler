@@ -8,13 +8,6 @@ import (
 	"github.com/pangobit/go-wrangler/internal/parse"
 )
 
-var bindingLogic = map[string]struct{ scalar, slice string }{
-	"query":  {"r.URL.Query().Get(\"%s\")", "r.URL.Query()[\"%s\"]"},
-	"header": {"r.Header.Get(\"%s\")", "r.Header.Values(\"%s\")"},
-	"form":   {"r.FormValue(\"%s\")", "r.Form[\"%s\"]"},
-	"path":   {"r.PathValue(\"%s\")", ""}, // Slice unsupported for path
-}
-
 // GenerateBindFunction generates a Go function that binds values from an http.Request to a struct based on its "bind" tags.
 func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 	var sb strings.Builder
@@ -55,22 +48,12 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 				lookupName = *tag.Bind.Name
 			}
 
-			logic, ok := bindingLogic[tag.Bind.Type]
+			valueExpr, ok := valueExpr(tag.Bind.Type, tag.FieldType, lookupName)
 			if !ok {
 				continue
 			}
 
 			isSlice := strings.HasPrefix(tag.FieldType, "[]")
-			template := logic.scalar
-			if isSlice {
-				template = logic.slice
-			}
-
-			if template == "" {
-				continue // Unsupported combination
-			}
-
-			valueExpr := fmt.Sprintf(template, lookupName)
 
 			if tag.FieldType == "int" {
 				sb.WriteString(fmt.Sprintf("\tif val, err := strconv.Atoi(%s); err != nil {\n\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t} else {\n\t\ts.%s = val\n\t}\n", valueExpr, lookupName, tag.FieldName))
@@ -185,4 +168,35 @@ func GeneratePackage(structs []parse.StructInfo, pkgName string) string {
 	}
 
 	return sb.String()
+}
+
+// valueExpr returns the Go code snippet for extracting a value from the request.
+// It returns the expression and a boolean indicating if the source/type combination is supported.
+func valueExpr(source, fieldType, key string) (string, bool) {
+	isSlice := strings.HasPrefix(fieldType, "[]")
+
+	switch source {
+	case "query":
+		if isSlice {
+			return fmt.Sprintf("r.URL.Query()[\"%s\"]", key), true
+		}
+		return fmt.Sprintf("r.URL.Query().Get(\"%s\")", key), true
+	case "header":
+		if isSlice {
+			return fmt.Sprintf("r.Header.Values(\"%s\")", key), true
+		}
+		return fmt.Sprintf("r.Header.Get(\"%s\")", key), true
+	case "form":
+		if isSlice {
+			return fmt.Sprintf("r.Form[\"%s\"]", key), true
+		}
+		return fmt.Sprintf("r.FormValue(\"%s\")", key), true
+	case "path":
+		if isSlice {
+			return "", false // Not natively supported
+		}
+		return fmt.Sprintf("r.PathValue(\"%s\")", key), true
+	default:
+		return "", false
+	}
 }
