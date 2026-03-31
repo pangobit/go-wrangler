@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/pangobit/go-wrangler/internal/parse"
@@ -198,5 +199,41 @@ func BindModifier(r *http.Request, s *Modifier) error {
 	}
 	if !hasStrconv {
 		t.Errorf("Expected strconv import for float64 binding")
+	}
+}
+
+func TestGeneratePackageSortsImportsDeterministically(t *testing.T) {
+	structs := []parse.StructInfo{
+		{
+			Name: "User",
+			Tags: []parse.TagInfo{
+				{
+					FieldName: "Name",
+					FieldType: "string",
+					Bind: &parse.BindTag{
+						Type: "header",
+					},
+				},
+			},
+		},
+		{
+			Name: "Modifier",
+			Tags: []parse.TagInfo{
+				{
+					FieldName: "Value",
+					FieldType: "float64",
+					Bind: &parse.BindTag{
+						Type: "form",
+					},
+				},
+			},
+		},
+	}
+
+	code := GeneratePackage(structs, "generated")
+
+	expectedImportBlock := "import (\n\t\"fmt\"\n\t\"net/http\"\n\t\"strconv\"\n)\n\n"
+	if !strings.Contains(code, expectedImportBlock) {
+		t.Fatalf("GeneratePackage() import block = %q, want ordered block %q", code, expectedImportBlock)
 	}
 }
