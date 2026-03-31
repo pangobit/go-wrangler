@@ -62,6 +62,22 @@ type User struct {
 	IDs []int ` + "`bind:\"form=id\"`" + `
 }`,
 		},
+		{
+			name: "float64 binding",
+			source: `package main
+
+type Modifier struct {
+	Value float64 ` + "`bind:\"form=value,required\"`" + `
+}`,
+		},
+		{
+			name: "float64 optional",
+			source: `package main
+
+type Setting struct {
+	Rate float64 ` + "`bind:\"form=rate\"`" + `
+}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -122,6 +138,10 @@ type User struct {
 						} else if tag.FieldType == "[]int" {
 							if !strings.Contains(code, "strconv.Atoi") {
 								t.Errorf("Expected strconv.Atoi for []int conversion in form")
+							}
+						} else if tag.FieldType == "float64" {
+							if !strings.Contains(code, "strconv.ParseFloat") {
+								t.Errorf("Expected strconv.ParseFloat for float64 conversion in form")
 							}
 						} else {
 							if !strings.Contains(code, fmt.Sprintf("r.Form.Get(\"%s\")", lookupName)) {

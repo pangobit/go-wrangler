@@ -18,7 +18,7 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 	needsFormParse := false
 	for _, tag := range structInfo.Tags {
 		if tag.Bind != nil {
-			if tag.FieldType == "int" || tag.FieldType == "[]int" {
+			if tag.FieldType == "int" || tag.FieldType == "[]int" || tag.FieldType == "float64" {
 				needsStrconv = true
 			}
 			if tag.Bind.Type == "form" {
@@ -69,6 +69,8 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 
 			if tag.FieldType == "int" {
 				sb.WriteString(fmt.Sprintf("\tif val := %s; val != \"\" {\n\t\tif val, err := strconv.Atoi(val); err != nil {\n\t\t\treturn fmt.Errorf(\"%s must be a valid integer\")\n\t\t} else {\n\t\t\ts.%s = val\n\t\t}\n\t}\n", expr, lookupName, tag.FieldName))
+			} else if tag.FieldType == "float64" {
+				sb.WriteString(fmt.Sprintf("\tif val := %s; val != \"\" {\n\t\tif val, err := strconv.ParseFloat(val, 64); err != nil {\n\t\t\treturn fmt.Errorf(\"%s must be a valid number\")\n\t\t} else {\n\t\t\ts.%s = val\n\t\t}\n\t}\n", expr, lookupName, tag.FieldName))
 			} else if tag.FieldType == "[]int" {
 				sb.WriteString(fmt.Sprintf("\t{\n\t\tvals := %s\n\t\ts.%s = make([]int, len(vals))\n\t\tfor i, v := range vals {\n\t\t\tif iv, err := strconv.Atoi(v); err != nil {\n\t\t\t\treturn fmt.Errorf(\"%s at index %%d must be a valid integer\", i)\n\t\t\t} else {\n\t\t\t\ts.%s[i] = iv\n\t\t\t}\n\t\t}\n\t}\n", expr, tag.FieldName, lookupName, tag.FieldName))
 			} else {
@@ -79,7 +81,7 @@ func GenerateBindFunction(structInfo parse.StructInfo) (string, []string) {
 				check := "s." + tag.FieldName + " == \"\""
 				if isSlice {
 					check = "len(s." + tag.FieldName + ") == 0"
-				} else if tag.FieldType == "int" {
+				} else if tag.FieldType == "int" || tag.FieldType == "float64" {
 					check = expr + " == \"\""
 				}
 				sb.WriteString(fmt.Sprintf("\tif %s {\n\t\treturn fmt.Errorf(\"%s is required\")\n\t}\n", check, lookupName))
