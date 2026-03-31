@@ -5,5 +5,6 @@ type User struct {
 	Email    string `bind:"query"`
 	Password string `bind:"form,required"`
 	Age      int    `validate:"min=18,max=120"`
-	ID       string `bind:"path,required" validate:"max=10"`
+	ID       string  `bind:"path,required" validate:"max=10"`
+	Score    float64 `bind:"form=score,required"`
 }

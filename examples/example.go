@@ -21,6 +21,7 @@ type User struct {
 	ID        string   ` + "`bind:\"path=id,required\" validate:\"max=10\"`" + `
 	Roles         []string ` + "`bind:\"form=roles\"`" + `
 	PermissionIDs []int    ` + "`bind:\"form=permissions\"`" + `
+	Score         float64  ` + "`bind:\"form=score,required\"`" + `
 }
 `
 
