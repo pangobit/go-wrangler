@@ -3,6 +3,7 @@ package generator
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pangobit/go-wrangler/internal/parse"
@@ -166,8 +167,14 @@ func GeneratePackage(structs []parse.StructInfo, pkgName string) string {
 	}
 
 	if len(importSet) > 0 {
-		sb.WriteString("import (\n")
+		imports := make([]string, 0, len(importSet))
 		for imp := range importSet {
+			imports = append(imports, imp)
+		}
+		sort.Strings(imports)
+
+		sb.WriteString("import (\n")
+		for _, imp := range imports {
 			sb.WriteString("\t\"" + imp + "\"\n")
 		}
 		sb.WriteString(")\n\n")
